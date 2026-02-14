@@ -40,13 +40,13 @@ export default function FormularioDocente({ user }) {
 const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validación de CCT: 2 números, 3 letras, 4 números, 1 letra
+    // Validación de CCT: 2 números, 3 letras, 4 números, 1 letra [cite: 11, 39, 66]
     const cctRegex = /^\d{2}[A-Z]{3}\d{4}[A-Z]{1}$/;
     if (!cctRegex.test(formData.cct)) {
       return alert("ERROR: El formato de la Clave C.T. es incorrecto (Ejemplo: 07DPR0001X)");
     }
 
-    // Validación de Teléfono: 10 dígitos
+    // Validación de Teléfono: 10 dígitos [cite: 29, 55, 82]
     if (formData.telefono.length !== 10) {
       return alert("ERROR: El teléfono debe tener exactamente 10 dígitos.");
     }
@@ -74,6 +74,7 @@ const handleSubmit = async (e) => {
     }
     setLoading(false);
   };
+
   return (
     <div style={{ padding: '25px', maxWidth: '1100px', margin: '20px auto', backgroundColor: '#fff', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontFamily: 'Arial' }}>
       <header style={{ background: '#003366', color: 'white', padding: '15px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
@@ -82,7 +83,7 @@ const handleSubmit = async (e) => {
       </header>
 
       <form onSubmit={handleSubmit}>
-        {/* SELECCIÓN DE CATEGORÍA [cite: 10] */}
+        {/* SELECCIÓN DE CATEGORÍA ACTUALIZADA [cite: 10, 57, 58] */}
         <CampoNivel label="CATEGORÍA / FUNCIÓN (SELECCIONE PARA DESPLEGAR CAMPOS)">
           <select value={formData.funcion} onChange={e => handleChange('funcion', e.target.value)} required style={{ width: '100%', padding: '12px', border: '2px solid #003366', borderRadius: '5px', fontWeight: 'bold' }}>
             <option value="">-- SELECCIONE UNA OPCIÓN --</option>
@@ -90,7 +91,8 @@ const handleSubmit = async (e) => {
             <option value="SUPERVISOR">SUPERVISOR</option>
             <option value="DIRECTOR">DIRECTOR TÉCNICO</option>
             <option value="DOCENTE">DOCENTE</option>
-            <option value="PAAE">PAAE (SECRETARIO / ASISTENTE DE SERVICIO)</option>
+            <option value="PAAE_ASISTENTE">PAAE ASISTENTE DE SERVICIO</option>
+            <option value="PAAE_SECRETARIO">PAAE SECRETARIO(A)</option>
           </select>
         </CampoNivel>
 
@@ -112,7 +114,7 @@ const handleSubmit = async (e) => {
             {/* II. DATOS DE ADSCRIPCIÓN [cite: 11-17] */}
             <h3 style={{ borderBottom: '2px solid #003366', color: '#003366', marginTop: '25px' }}>II. DATOS DE ADSCRIPCIÓN</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '15px' }}>
-              {['DOCENTE', 'PAAE', 'DIRECTOR'].includes(formData.funcion) && (
+              {['DOCENTE', 'PAAE_ASISTENTE', 'PAAE_SECRETARIO', 'DIRECTOR'].includes(formData.funcion) && (
                 <CampoNivel label="Escuela donde trabaja"><input type="text" value={formData.escuela_trabaja} onChange={e => handleChange('escuela_trabaja', e.target.value)} required style={{width: '100%', padding: '8px'}}/></CampoNivel>
               )}
               <CampoNivel label="Clave de C.T. (Ej: 07DPR1234A)"><input type="text" value={formData.cct} onChange={e => handleChange('cct', e.target.value)} required style={{width: '100%', padding: '8px'}}/></CampoNivel>
@@ -154,7 +156,17 @@ const handleSubmit = async (e) => {
               <CampoNivel label="Población"><input type="text" value={formData.poblacion} onChange={e => handleChange('poblacion', e.target.value)} style={{width: '100%', padding: '8px'}}/></CampoNivel>
               <CampoNivel label="Municipio (Particular)"><input type="text" value={formData.domicilio_municipio} onChange={e => handleChange('domicilio_municipio', e.target.value)} style={{width: '100%', padding: '8px'}}/></CampoNivel>
               <CampoNivel label="Teléfono (10 dígitos)"><input type="tel" value={formData.telefono} onChange={e => handleChange('telefono', e.target.value)} maxLength={10} style={{width: '100%', padding: '8px'}}/></CampoNivel>
-              <CampoNivel label="Grado Estudios"><select value={formData.grado_estudios} onChange={e => handleChange('grado_estudios', e.target.value)} style={{width: '100%', padding: '8px'}}><option value="LICENCIATURA">LICENCIATURA</option><option value="MAESTRIA">MAESTRÍA</option><option value="DOCTORADO">DOCTORADO</option></select></CampoNivel>
+              {/* CAMPO DE NIVEL EDUCATIVO / GRADO DE ESTUDIOS ACTUALIZADO  */}
+              <CampoNivel label="Nivel / Grado Estudios">
+                <select value={formData.grado_estudios} onChange={e => handleChange('grado_estudios', e.target.value)} style={{width: '100%', padding: '8px'}}>
+                  <option value="PRIMARIA">PRIMARIA</option>
+                  <option value="SECUNDARIA">SECUNDARIA</option>
+                  <option value="PREPARATORIA">PREPARATORIA</option>
+                  <option value="LICENCIATURA">LICENCIATURA</option>
+                  <option value="MAESTRIA">MAESTRÍA</option>
+                  <option value="DOCTORADO">DOCTORADO</option>
+                </select>
+              </CampoNivel>
             </div>
 
             {/* OPCIÓN MATRIMONIO */}
@@ -179,21 +191,24 @@ const handleSubmit = async (e) => {
               </div>
             )}
 
-<button 
-  type="submit" 
-  disabled={loading || formData.validado} 
-  style={{ 
-    width: '100%', 
-    padding: '15px', 
-    background: formData.validado ? '#666' : '#003366', 
-    color: 'white', 
-    fontWeight: 'bold' 
-  }}
->
-  {formData.validado 
-    ? `REGISTRO VALIDADO Y BLOQUEADO (FOLIO: ${formData.folio})` 
-    : (loading ? 'PROCESANDO...' : 'FINALIZAR REGISTRO')}
-</button>
+            <button 
+              type="submit" 
+              disabled={loading || formData.validado} 
+              style={{ 
+                width: '100%', 
+                padding: '15px', 
+                background: formData.validado ? '#666' : '#003366', 
+                color: 'white', 
+                fontWeight: 'bold',
+                marginTop: '20px',
+                borderRadius: '5px',
+                cursor: 'pointer'
+              }}
+            >
+              {formData.validado 
+                ? `REGISTRO VALIDADO Y BLOQUEADO (FOLIO: ${formData.folio})` 
+                : (loading ? 'PROCESANDO...' : 'FINALIZAR REGISTRO')}
+            </button>
           </>
         )}
       </form>

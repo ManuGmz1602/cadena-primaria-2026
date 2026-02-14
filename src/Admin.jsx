@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
 import { generarAcuse } from './lib/generadorPDF';
 
-// Componente para visualizar y editar datos en modo administrador
+// Componente para visualizar y editar datos en modo administrador 
 const CampoEspejo = ({ label, value, onChange, disabled, type = "text" }) => (
   <div style={{ marginBottom: '12px' }}>
     <label style={{ display: 'block', fontWeight: 'bold', fontSize: '12px', color: '#444' }}>{label}</label>
@@ -36,16 +36,17 @@ export default function Admin() {
     setLoading(true);
 
     try {
-      // Lógica de Folios según Categoría [cite: 10]
+      // Lógica de Folios según Categoría y nueva separación PAAE [cite: 10, 57, 58]
       let prefijo = "DOC";
       if (editando.es_matrimonio) prefijo = "MAT";
       else if (editando.funcion === "DIRECTOR") prefijo = "DIR";
       else if (editando.funcion === "SUPERVISOR") prefijo = "SUP";
       else if (editando.funcion === "JEFE_SECTOR") prefijo = "JEF";
-      else if (editando.funcion.includes("PAAE")) prefijo = "PAE";
+      else if (editando.funcion === "PAAE_ASISTENTE") prefijo = "PAS";
+      else if (editando.funcion === "PAAE_SECRETARIO") prefijo = "PSE";
 
       let folioFinal = "";
-      // Validación de matrimonio compartido
+      // Validación de matrimonio compartido [cite: 84]
       if (editando.es_matrimonio && editando.rfc_conyuge) {
         const { data: pareja } = await supabase.from('registros_primaria')
           .select('folio').eq('rfc', editando.rfc_conyuge).not('folio', 'is', null).maybeSingle();
@@ -73,54 +74,29 @@ export default function Admin() {
     finally { setLoading(false); }
   };
 
-  const filtrados = registros.filter(r => r.rfc.includes(busqueda.toUpperCase()) || r.apellido_paterno.includes(busqueda.toUpperCase()));
+  const filtrados = registros.filter(r => 
+    r.rfc.includes(busqueda.toUpperCase()) || 
+    r.apellido_paterno.includes(busqueda.toUpperCase()) ||
+    r.grado_estudios?.includes(busqueda.toUpperCase()) // Permite filtrar por PRIMARIA, SECUNDARIA, etc.
+  );
 
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial', backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
-      {/* BUSCADOR */}
-<div style={{ 
-  background: '#003366', 
-  color: 'white', 
-  padding: '20px', 
-  borderRadius: '8px', 
-  marginBottom: '20px',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-}}>
-  <div>
-    <h2 style={{ margin: 0, fontSize: '20px' }}>PANEL DE CONTROL ADMINISTRATIVO</h2>
-    <input 
-      type="text" 
-      placeholder="BUSCAR RFC O APELLIDO..." 
-      onChange={e => setBusqueda(e.target.value.toUpperCase())} 
-      style={{ width: '350px', padding: '10px', marginTop: '10px', borderRadius: '4px', border: 'none' }} 
-    />
-  </div>
-  
-  <button 
-    onClick={() => {
-      if(window.confirm("¿Desea salir del sistema?")) {
-        supabase.auth.signOut();
-      }
-    }} 
-    style={{ 
-      background: '#d9534f', 
-      color: 'white', 
-      border: 'none', 
-      padding: '12px 20px', 
-      borderRadius: '5px', 
-      fontWeight: 'bold', 
-      cursor: 'pointer',
-      transition: '0.3s'
-    }}
-    onMouseOver={(e) => e.target.style.background = '#c9302c'}
-    onMouseOut={(e) => e.target.style.background = '#d9534f'}
-  >
-    CERRAR SESIÓN
-  </button>
-</div>
+      {/* CONTENEDOR AZUL CON BUSCADOR Y BOTÓN DE SALIDA */}
+      <div style={{ background: '#003366', color: 'white', padding: '20px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '20px' }}>PANEL DE CONTROL ADMINISTRATIVO</h2>
+          <input 
+            type="text" 
+            placeholder="BUSCAR POR RFC, APELLIDO O NIVEL (EJ. PRIMARIA)..." 
+            onChange={e => setBusqueda(e.target.value.toUpperCase())} 
+            style={{ width: '400px', padding: '10px', marginTop: '10px', borderRadius: '4px', border: 'none' }} 
+          />
+        </div>
+        <button onClick={() => { if(window.confirm("¿Desea salir del sistema?")) supabase.auth.signOut(); }} style={{ background: '#d9534f', color: 'white', border: 'none', padding: '12px 20px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>
+          CERRAR SESIÓN
+        </button>
+      </div>
 
       {!editando ? (
         <table style={{ width: '100%', background: 'white', borderCollapse: 'collapse', borderRadius: '8px', overflow: 'hidden' }}>
@@ -129,6 +105,7 @@ export default function Admin() {
               <th style={{ padding: '12px' }}>RFC</th>
               <th>NOMBRE</th>
               <th>FUNCIÓN</th>
+              <th>NIVEL/GRADO</th>
               <th>ESTADO</th>
               <th>ACCIONES</th>
             </tr>
@@ -139,6 +116,7 @@ export default function Admin() {
                 <td style={{ padding: '12px' }}>{r.rfc}</td>
                 <td>{`${r.apellido_paterno} ${r.nombres}`}</td>
                 <td>{r.funcion}</td>
+                <td>{r.grado_estudios}</td>
                 <td>{r.validado ? <b style={{color:'green'}}>{r.folio}</b> : <span style={{color:'orange'}}>PENDIENTE</span>}</td>
                 <td>
                   <button onClick={() => setEditando(r)} style={{ padding: '6px 12px', cursor: 'pointer', background: '#003366', color: 'white', border: 'none', borderRadius: '4px' }}>
@@ -156,47 +134,40 @@ export default function Admin() {
             <button onClick={() => setEditando(null)} style={{ height: '35px', marginTop: '15px' }}>CERRAR REVISIÓN</button>
           </div>
 
-          {/* GRID DE DATOS 100% ESPEJO [cite: 5-83] */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
-            <div style={{ gridColumn: 'span 4', background: '#003366', color: 'white', padding: '5px 10px' }}>I. DATOS PERSONALES Y FILIACIÓN</div>
+            <div style={{ gridColumn: 'span 4', background: '#003366', color: 'white', padding: '5px 10px' }}>I. DATOS PERSONALES Y FILIACIÓN [cite: 4-10, 23]</div>
             <CampoEspejo label="Apellido Paterno" value={editando.apellido_paterno} onChange={v => handleUpdate('apellido_paterno', v)} disabled={editando.validado} />
             <CampoEspejo label="Apellido Materno" value={editando.apellido_materno} onChange={v => handleUpdate('apellido_materno', v)} disabled={editando.validado} />
             <CampoEspejo label="Nombre(s)" value={editando.nombres} onChange={v => handleUpdate('nombres', v)} disabled={editando.validado} />
             <CampoEspejo label="RFC" value={editando.rfc} onChange={v => handleUpdate('rfc', v)} disabled={editando.validado} />
             <CampoEspejo label="CURP" value={editando.curp} onChange={v => handleUpdate('curp', v)} disabled={editando.validado} />
             <CampoEspejo label="Clave Presupuestal" value={editando.clave_presupuestal} onChange={v => handleUpdate('clave_presupuestal', v)} disabled={editando.validado} />
-            <CampoEspejo label="Función Seleccionada" value={editando.funcion} disabled={true} />
-            <CampoEspejo label="Grado Máximo Estudios" value={editando.grado_estudios} onChange={v => handleUpdate('grado_estudios', v)} disabled={editando.validado} />
+            <CampoEspejo label="Función Actual" value={editando.funcion} disabled={true} />
+            <CampoEspejo label="Nivel Educativo / Grado Estudios" value={editando.grado_estudios} onChange={v => handleUpdate('grado_estudios', v)} disabled={editando.validado} />
 
-            <div style={{ gridColumn: 'span 4', background: '#003366', color: 'white', padding: '5px 10px' }}>II. DATOS DE ADSCRIPCIÓN (CENTRO DE TRABAJO)</div>
-            {editando.escuela_trabaja && <CampoEspejo label="Escuela donde trabaja" value={editando.escuela_trabaja} onChange={v => handleUpdate('escuela_trabaja', v)} disabled={editando.validado} />}
+            <div style={{ gridColumn: 'span 4', background: '#003366', color: 'white', padding: '5px 10px' }}>II. DATOS DE ADSCRIPCIÓN (C.T.) [cite: 11-17, 38-45]</div>
+            <CampoEspejo label="Escuela / C.T." value={editando.escuela_trabaja || editando.localidad} onChange={v => handleUpdate('escuela_trabaja', v)} disabled={editando.validado} />
             <CampoEspejo label="Clave C.T." value={editando.cct} onChange={v => handleUpdate('cct', v)} disabled={editando.validado} />
-            <CampoEspejo label="Zona Escolar" value={editando.zona_escolar} onChange={v => handleUpdate('zona_escolar', v)} disabled={editando.validado} />
+            <CampoEspejo label="No. de Zona" value={editando.zona_escolar} onChange={v => handleUpdate('zona_escolar', v)} disabled={editando.validado} />
             <CampoEspejo label="Sector" value={editando.sector} onChange={v => handleUpdate('sector', v)} disabled={editando.validado} />
             <CampoEspejo label="Localidad" value={editando.localidad} onChange={v => handleUpdate('localidad', v)} disabled={editando.validado} />
             <CampoEspejo label="Municipio" value={editando.municipio} onChange={v => handleUpdate('municipio', v)} disabled={editando.validado} />
             <CampoEspejo label="Cabecera" value={editando.cabecera} onChange={v => handleUpdate('cabecera', v)} disabled={editando.validado} />
             <CampoEspejo label="Sede" value={editando.sede} onChange={v => handleUpdate('sede', v)} disabled={editando.validado} />
 
-            <div style={{ gridColumn: 'span 4', background: '#003366', color: 'white', padding: '5px 10px' }}>III. ANTIGÜEDAD Y CONTACTO</div>
-            <CampoEspejo label="Ingreso SEP (AAAA-MM-DD)" value={editando.fecha_sep} onChange={v => handleUpdate('fecha_sep', v)} disabled={editando.validado} type="date" />
-            <CampoEspejo label="Ingreso Zona (AAAA-MM-DD)" value={editando.fecha_zona} onChange={v => handleUpdate('fecha_zona', v)} disabled={editando.validado} type="date" />
-            <CampoEspejo label="Ingreso C.T. (AAAA-MM-DD)" value={editando.fecha_ct} onChange={v => handleUpdate('fecha_ct', v)} disabled={editando.validado} type="date" />
-            <CampoEspejo label="Teléfono (10 dígitos)" value={editando.telefono} onChange={v => handleUpdate('telefono', v)} disabled={editando.validado} />
-            <CampoEspejo label="Correo Electrónico" value={editando.correo_electronico} onChange={v => handleUpdate('correo_electronico', v)} disabled={editando.validado} />
-            
-            <div style={{ gridColumn: 'span 4', background: '#003366', color: 'white', padding: '5px 10px' }}>IV. DOMICILIO PARTICULAR</div>
+            <div style={{ gridColumn: 'span 4', background: '#003366', color: 'white', padding: '5px 10px' }}>III. ANTIGÜEDAD (AÑO, MES, DÍA) [cite: 18-22, 46-49, 73-76]</div>
+            <CampoEspejo label="Antigüedad SEP" value={editando.fecha_sep} onChange={v => handleUpdate('fecha_sep', v)} disabled={editando.validado} type="date" />
+            <CampoEspejo label="Antigüedad Zona" value={editando.fecha_zona} onChange={v => handleUpdate('fecha_zona', v)} disabled={editando.validado} type="date" />
+            <CampoEspejo label="Antigüedad C.T." value={editando.fecha_ct} onChange={v => handleUpdate('fecha_ct', v)} disabled={editando.validado} type="date" />
+            <CampoEspejo label="Teléfono" value={editando.telefono} onChange={v => handleUpdate('telefono', v)} disabled={editando.validado} />
+            <CampoEspejo label="Correo" value={editando.correo_electronico} onChange={v => handleUpdate('correo_electronico', v)} disabled={editando.validado} />
+
+            <div style={{ gridColumn: 'span 4', background: '#003366', color: 'white', padding: '5px 10px' }}>IV. DOMICILIO PARTICULAR [cite: 24-28, 50-54, 77-81]</div>
             <CampoEspejo label="Calle y Número" value={editando.calle_numero} onChange={v => handleUpdate('calle_numero', v)} disabled={editando.validado} />
             <CampoEspejo label="Colonia" value={editando.colonia} onChange={v => handleUpdate('colonia', v)} disabled={editando.validado} />
             <CampoEspejo label="Población" value={editando.poblacion} onChange={v => handleUpdate('poblacion', v)} disabled={editando.validado} />
-            <CampoEspejo label="Municipio Particular" value={editando.domicilio_municipio} onChange={v => handleUpdate('domicilio_municipio', v)} disabled={editando.validado} />
+            <CampoEspejo label="Municipio" value={editando.domicilio_municipio} onChange={v => handleUpdate('domicilio_municipio', v)} disabled={editando.validado} />
           </div>
-
-          {editando.es_matrimonio && (
-            <div style={{ marginTop: '20px', padding: '15px', background: '#fff3cd', border: '1px solid #ffeeba', borderRadius: '5px' }}>
-              <b>SOLICITUD POR MATRIMONIO ACTIVA:</b> RFC del Cónyuge: {editando.rfc_conyuge}
-            </div>
-          )}
 
           <div style={{ marginTop: '30px', textAlign: 'center' }}>
             {!editando.validado ? (
@@ -205,8 +176,8 @@ export default function Admin() {
               </button>
             ) : (
               <div style={{ padding: '15px', background: '#d4edda', color: '#155724', border: '1px solid #c3e6cb', borderRadius: '5px' }}>
-                <h3>VALIDACIÓN CONCLUIDA - FOLIO ASIGNADO: {editando.folio}</h3>
-                <button onClick={() => generarAcuse(editando)} style={{ background: '#003366', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>REIMPRIMIR ACUSE OFICIAL</button>
+                <h3>VALIDACIÓN CONCLUIDA - FOLIO: {editando.folio}</h3>
+                <button onClick={() => generarAcuse(editando)} style={{ background: '#003366', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>REIMPRIMIR ACUSE</button>
               </div>
             )}
           </div>

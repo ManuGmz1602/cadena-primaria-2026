@@ -32,7 +32,7 @@ export default function Login() {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f5f5f5', fontFamily: 'Arial' }}>
       <form onSubmit={handleAuth} style={{ background: 'white', padding: '40px', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', width: '320px' }}>
-        <h2 style={{ textAlign: 'center', color: '#003366' }}>{isRegistering ? 'Regístrate' : 'Acceso al Sistema'}</h2>
+        <h2 style={{ textAlign: 'center', color: '#003366' }}>{isRegistering ? 'Regístrate' : 'Registro Cadena de Cambio 2026 Primaria'}</h2>
         <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: '100%', padding: '10px', marginBottom: '10px' }} required />
         <input type="password" placeholder="Contraseña" value={password} onChange={e => setPassword(e.target.value)} style={{ width: '100%', padding: '10px', marginBottom: '20px' }} required />
         <button type="submit" disabled={loading} style={{ width: '100%', padding: '12px', background: '#003366', color: 'white', border: 'none', cursor: 'pointer' }}>
